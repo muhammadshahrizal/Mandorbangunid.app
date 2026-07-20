@@ -37,7 +37,7 @@ String getOptimizedImageUrl(String imagePath, {String size = 'medium'}) {
   }
 
   // Untuk path lokal, gunakan optimize-image.php
-  return 'http://192.168.1.15/mandorbangun.id/api/optimize-image.php?path=$imagePath&width=$width';
+  return 'http://192.168.1.9/mandorbangun.id/api/optimize-image.php?path=$imagePath&width=$width';
 }
 
 // ==========================================
@@ -46,7 +46,7 @@ String getOptimizedImageUrl(String imagePath, {String size = 'medium'}) {
 Widget _buildSafeNetworkImage(
   String imageUrl, {
   BoxFit fit = BoxFit.cover,
-  int? cacheWidth, // <--- TAMBAHIN JURUS INI
+  int? cacheWidth, 
 }) {
   if (imageUrl.isEmpty) {
     return Container(
@@ -58,7 +58,7 @@ Widget _buildSafeNetworkImage(
   return CachedNetworkImage(
     imageUrl: imageUrl,
     fit: fit,
-    memCacheWidth: cacheWidth, // <--- BIAR RAM HP GAK NGEDEN
+    memCacheWidth: cacheWidth,
     fadeInDuration: const Duration(milliseconds: 300),
     fadeOutDuration: const Duration(milliseconds: 300),
     placeholder: (context, url) => Container(
@@ -515,7 +515,7 @@ class _HomeScreenState extends State<HomeScreen> {
         if (mounted) setState(() { _services = data['data'] ?? []; _isLoading = false; });
       }
 
-      final response = await http.get(Uri.parse('http://192.168.1.15/mandorbangun.id/api/services.php'))
+      final response = await http.get(Uri.parse('http://192.168.1.9/mandorbangun.id/api/services.php'))
       .timeout(const Duration(seconds: 5));
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -543,7 +543,7 @@ class _HomeScreenState extends State<HomeScreen> {
         if (mounted) setState(() { _projects = data['data'] ?? []; _isLoadingProjects = false; });
       }
 
-      final response = await http.get(Uri.parse('http://192.168.1.15/mandorbangun.id/api/portfolio.php'));
+      final response = await http.get(Uri.parse('http://192.168.1.9/mandorbangun.id/api/portfolio.php'));
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data['success'] == true && data['data'] != null) {
@@ -951,7 +951,7 @@ class _GalleryScreenState extends State<GalleryScreen> {
         }
       }
 
-      String url = 'http://192.168.1.15/mandorbangun.id/api/gallery.php';
+      String url = 'http://192.168.1.9/mandorbangun.id/api/gallery.php';
       final response = await http.get(Uri.parse(url));
 
       if (response.statusCode == 200) {
@@ -1248,7 +1248,7 @@ class _GalleryDetailSheetState extends State<GalleryDetailSheet> {
                         itemBuilder: (context, index) {
                           var imageUrl = images[index]['path'] ?? '';
                           if (imageUrl.isNotEmpty && !imageUrl.startsWith('http')) {
-                            imageUrl = 'http://192.168.1.15/mandorbangun.id/$imageUrl';
+                            imageUrl = 'http://192.168.1.9/mandorbangun.id/$imageUrl';
                           }
 
                           return ClipRRect(
@@ -1331,7 +1331,7 @@ class _GalleryDetailSheetState extends State<GalleryDetailSheet> {
                           children: List.generate(images.length, (index) {
                             var thumbUrl = images[index]['path'] ?? '';
                             if (thumbUrl.isNotEmpty && !thumbUrl.startsWith('http')) {
-                              thumbUrl = 'http://192.168.1.15/mandorbangun.id/$thumbUrl';
+                              thumbUrl = 'http://192.168.1.9/mandorbangun.id/$thumbUrl';
                             }
 
                           return GestureDetector(
@@ -1418,7 +1418,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         }
       }
 
-      final response = await http.get(Uri.parse('http://192.168.1.15/mandorbangun.id/api/contact.php'));
+      final response = await http.get(Uri.parse('http://192.168.1.9/mandorbangun.id/api/contact.php'));
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
