@@ -38,28 +38,19 @@ class _ChatbotScreenState extends State<ChatbotScreen>
   // COMPANY INFORMATION
   // ============================================================
 
-  static const String companyName =
-      'PT Mandorbangunid Persada';
-
-  static const String companyBrand =
-      'Mandorbangun';
-
   static const String companyAddress =
       'Ruko Bukit Emerald Jaya, Blok C No.05, '
       'Meteseh, Kec. Tembalang, '
       'Kota Semarang, Jawa Tengah 50271';
 
   static const String companyPhone =
-      '08123456789';
+      '08152318805';
 
   static const String companyEmail =
       'Mandorbangun.id23@gmail.com';
 
   static const String companyWebsite =
       'https://www.Mandorbangunid.com/';
-
-  static const String companyInstagram =
-      'Mandorbangun.id';
 
   // ============================================================
   // CONTROLLER
@@ -83,8 +74,6 @@ class _ChatbotScreenState extends State<ChatbotScreen>
   bool _isKeyboardVisible = false;
 
   String? _lastUserQuestion;
-
-  String? _lastErrorMessage;
 
   // ============================================================
   // MESSAGES
@@ -234,8 +223,6 @@ class _ChatbotScreenState extends State<ChatbotScreen>
       });
 
       _isLoading = true;
-
-      _lastErrorMessage = null;
     });
 
     _messageController.clear();
@@ -679,8 +666,6 @@ class _ChatbotScreenState extends State<ChatbotScreen>
     setState(() {
       _isLoading = false;
 
-      _lastErrorMessage = error;
-
       _messages.add({
         'sender': 'bot',
         'text':
@@ -805,9 +790,6 @@ class _ChatbotScreenState extends State<ChatbotScreen>
       _messages.clear();
 
       _lastUserQuestion =
-          null;
-
-      _lastErrorMessage =
           null;
 
       _addInitialMessage();
