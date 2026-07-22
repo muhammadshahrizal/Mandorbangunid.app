@@ -8,6 +8,7 @@ import 'dart:async';
 import 'dart:ui'; // Wajib buat efek blur/kaca transparan
 import 'chatbot_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'rab_screen.dart';
 
 void main() {
   runApp(const MandorBangunApp());
@@ -342,18 +343,32 @@ class _MainScreenState extends State<MainScreen> {
       ),
 
       // PAKE INDEXEDSTACK BIAR HALAMAN DISIMPEN DI MEMORI (PINDAH TAB 0 DETIK!)
-      body: AnimatedIndexedStack( // <--- Tinggal tambahin kata "Animated" di depannya
-        index: _selectedIndex,
-        children: [
-          HomeScreen(
-            onNavigateToGallery: () => setState(() => _selectedIndex = 1),
-          ),
-          GalleryScreen(
-            onBack: () => setState(() => _selectedIndex = 0)
-          ),
-          const ProfileScreen(),
-        ],
-      ),
+      body: AnimatedIndexedStack(
+  index: _selectedIndex,
+  children: [
+    // INDEX 0
+    // HOME
+    HomeScreen(
+      onNavigateToGallery: () =>
+          setState(() => _selectedIndex = 1),
+    ),
+
+    // INDEX 1
+    // GALERI
+    GalleryScreen(
+      onBack: () =>
+          setState(() => _selectedIndex = 0),
+    ),
+
+    // INDEX 2
+    // KALKULATOR RAB
+    const RabScreen(),
+
+    // INDEX 3
+    // PROFIL
+    const ProfileScreen(),
+  ],
+),
 
       bottomNavigationBar: SafeArea(
         child: Container(
