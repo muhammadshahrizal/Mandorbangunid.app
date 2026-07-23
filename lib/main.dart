@@ -2,19 +2,14 @@ import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:http/http.dart' as http;
-import 'package:cached_network_image/cached_network_image.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:url_launcher/url_launcher.dart';
 
-import 'screens/home_screen.dart';
-import 'screens/gallery_screen.dart';
-import 'screens/rab_screen.dart';
-import 'screens/profile_screen.dart';
-import 'screens/notification_screen.dart';
-import 'screens/user_profile_screen.dart';
 import 'screens/chatbot_screen.dart';
+import 'screens/gallery_screen.dart';
+import 'screens/home_screen.dart';
+import 'screens/notification_screen.dart';
+import 'screens/profile_screen.dart';
+import 'screens/rab_screen.dart';
+import 'screens/user_profile_screen.dart';
 
 void main() {
   runApp(const MandorBangunApp());
@@ -26,71 +21,6 @@ class NoBouncScrollBehavior extends ScrollBehavior {
   ScrollPhysics getScrollPhysics(BuildContext context) {
     return const ClampingScrollPhysics();
   }
-}
-
-// ==========================================
-// HELPER FUNCTION UNTUK IMAGE URL (Optimized)
-// ==========================================
-String getOptimizedImageUrl(String imagePath, {String size = 'medium'}) {
-  if (imagePath.isEmpty) return '';
-
-  int width = 800;
-  if (size == 'thumb') width = 300;
-  if (size == 'large') width = 1200;
-
-  if (imagePath.startsWith('http')) {
-    return imagePath;
-  }
-
-  return 'http://192.168.1.9/mandorbangun.id/api/optimize-image.php?path=$imagePath&width=$width';
-}
-
-// ==========================================
-// WIDGET HELPER: SAFE IMAGE LOADER
-// ==========================================
-Widget _buildSafeNetworkImage(
-  String imageUrl, {
-  BoxFit fit = BoxFit.cover,
-  int? cacheWidth,
-}) {
-  if (imageUrl.isEmpty) {
-    return Container(
-      color: const Color(0xFF151515),
-      child: const Icon(Icons.image_not_supported, color: Colors.grey),
-    );
-  }
-
-  return CachedNetworkImage(
-    imageUrl: imageUrl,
-    fit: fit,
-    memCacheWidth: cacheWidth,
-    fadeInDuration: const Duration(milliseconds: 300),
-    fadeOutDuration: const Duration(milliseconds: 300),
-    placeholder: (context, url) => Container(
-      color: const Color(0xFF151515),
-      child: const Center(
-        child: SizedBox(
-          width: 40,
-          height: 40,
-          child: CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFD4AF37)),
-            strokeWidth: 2,
-          ),
-        ),
-      ),
-    ),
-    errorWidget: (context, url, error) {
-      debugPrint('Image load error: $url - $error');
-      return Container(
-        color: const Color(0xFF151515),
-        child: const Icon(Icons.image_not_supported, color: Colors.grey),
-      );
-    },
-    httpHeaders: const {
-      'Connection': 'keep-alive',
-      'Cache-Control': 'max-age=2592000',
-    },
-  );
 }
 
 class MandorBangunApp extends StatelessWidget {
@@ -128,16 +58,24 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
+  Timer? _splashTimer;
+
   @override
   void initState() {
     super.initState();
-    Timer(const Duration(seconds: 3), () {
+    _splashTimer = Timer(const Duration(seconds: 3), () {
       if (mounted) {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (context) => const MainScreen()),
         );
       }
     });
+  }
+
+  @override
+  void dispose() {
+    _splashTimer?.cancel();
+    super.dispose();
   }
 
   @override
