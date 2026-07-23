@@ -2,12 +2,19 @@ import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:http/http.dart' as http;
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 
-import 'screens/chatbot_screen.dart';
-import 'screens/gallery_screen.dart';
 import 'screens/home_screen.dart';
-import 'screens/profile_screen.dart';
+import 'screens/gallery_screen.dart';
 import 'screens/rab_screen.dart';
+import 'screens/profile_screen.dart';
+import 'screens/notification_screen.dart';
+import 'screens/user_profile_screen.dart';
+import 'screens/chatbot_screen.dart';
 
 void main() {
   runApp(const MandorBangunApp());
@@ -19,6 +26,71 @@ class NoBouncScrollBehavior extends ScrollBehavior {
   ScrollPhysics getScrollPhysics(BuildContext context) {
     return const ClampingScrollPhysics();
   }
+}
+
+// ==========================================
+// HELPER FUNCTION UNTUK IMAGE URL (Optimized)
+// ==========================================
+String getOptimizedImageUrl(String imagePath, {String size = 'medium'}) {
+  if (imagePath.isEmpty) return '';
+
+  int width = 800;
+  if (size == 'thumb') width = 300;
+  if (size == 'large') width = 1200;
+
+  if (imagePath.startsWith('http')) {
+    return imagePath;
+  }
+
+  return 'http://192.168.1.9/mandorbangun.id/api/optimize-image.php?path=$imagePath&width=$width';
+}
+
+// ==========================================
+// WIDGET HELPER: SAFE IMAGE LOADER
+// ==========================================
+Widget _buildSafeNetworkImage(
+  String imageUrl, {
+  BoxFit fit = BoxFit.cover,
+  int? cacheWidth,
+}) {
+  if (imageUrl.isEmpty) {
+    return Container(
+      color: const Color(0xFF151515),
+      child: const Icon(Icons.image_not_supported, color: Colors.grey),
+    );
+  }
+
+  return CachedNetworkImage(
+    imageUrl: imageUrl,
+    fit: fit,
+    memCacheWidth: cacheWidth,
+    fadeInDuration: const Duration(milliseconds: 300),
+    fadeOutDuration: const Duration(milliseconds: 300),
+    placeholder: (context, url) => Container(
+      color: const Color(0xFF151515),
+      child: const Center(
+        child: SizedBox(
+          width: 40,
+          height: 40,
+          child: CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFD4AF37)),
+            strokeWidth: 2,
+          ),
+        ),
+      ),
+    ),
+    errorWidget: (context, url, error) {
+      debugPrint('Image load error: $url - $error');
+      return Container(
+        color: const Color(0xFF151515),
+        child: const Icon(Icons.image_not_supported, color: Colors.grey),
+      );
+    },
+    httpHeaders: const {
+      'Connection': 'keep-alive',
+      'Cache-Control': 'max-age=2592000',
+    },
+  );
 }
 
 class MandorBangunApp extends StatelessWidget {
@@ -46,7 +118,7 @@ class MandorBangunApp extends StatelessWidget {
 }
 
 // ==========================================
-// 1. SPLASH SCREEN
+// 1. SPLASH SCREEN (ANIMASI MUTER-MUTER + LOGO)
 // ==========================================
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -56,24 +128,16 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
-  Timer? _splashTimer;
-
   @override
   void initState() {
     super.initState();
-    _splashTimer = Timer(const Duration(seconds: 3), () {
+    Timer(const Duration(seconds: 3), () {
       if (mounted) {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (context) => const MainScreen()),
         );
       }
     });
-  }
-
-  @override
-  void dispose() {
-    _splashTimer?.cancel();
-    super.dispose();
   }
 
   @override
@@ -118,7 +182,7 @@ class _SplashScreenState extends State<SplashScreen> {
 }
 
 // ==========================================
-// WIDGET HELPER: ANIMASI PINDAH TAB (FADE, SCALE & SLIDE) 🔥
+// WIDGET HELPER: ANIMASI PINDAH TAB (FADE & SLIDE)
 // ==========================================
 class AnimatedIndexedStack extends StatefulWidget {
   final int index;
@@ -137,16 +201,15 @@ class AnimatedIndexedStack extends StatefulWidget {
 class _AnimatedIndexedStackState extends State<AnimatedIndexedStack>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
-  late int _previousIndex; // Nyimpen info tab sebelumnya biar tau arah geser
+  late int _previousIndex;
 
   @override
   void initState() {
     super.initState();
     _previousIndex = widget.index;
-    // Bikin durasi lebih smooth, nggak kekencengan nggak kelamaan
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 350),
+      duration: const Duration(milliseconds: 300),
     );
     _controller.forward();
   }
@@ -154,7 +217,6 @@ class _AnimatedIndexedStackState extends State<AnimatedIndexedStack>
   @override
   void didUpdateWidget(AnimatedIndexedStack oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Kalau index tab berubah, kita restart animasinya dari awal (0.0)
     if (widget.index != oldWidget.index) {
       _previousIndex = oldWidget.index;
       _controller.forward(from: 0.0);
@@ -169,30 +231,23 @@ class _AnimatedIndexedStackState extends State<AnimatedIndexedStack>
 
   @override
   Widget build(BuildContext context) {
-    // Nentuin arah geser: Kalau pindah ke tab kanan geser dari kiri, dan sebaliknya
     final isMovingRight = widget.index > _previousIndex;
-    final beginOffset = isMovingRight
-        ? const Offset(0.05, 0.0)
-        : const Offset(-0.05, 0.0);
+    final beginOffset =
+        isMovingRight ? const Offset(0.03, 0.0) : const Offset(-0.03, 0.0);
 
     return FadeTransition(
-      // Efek Pudar: Dimulai dari agak terang (0.2) ke full (1.0) biar nggak nge-blank item
-      opacity: Tween<double>(
-        begin: 0.2,
-        end: 1.0,
-      ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut)),
+      opacity: Tween<double>(begin: 0.2, end: 1.0).animate(
+        CurvedAnimation(parent: _controller, curve: Curves.easeOut),
+      ),
       child: SlideTransition(
-        // Efek Geser Tipis: Nyesuain arah lu mencet tab
-        position: Tween<Offset>(begin: beginOffset, end: Offset.zero).animate(
-          CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
-        ),
-
-        child: ScaleTransition(
-          // Efek Zoom Tipis: Dari 98% (agak kecil) nge-zoom ke 100% (normal)
-          scale: Tween<double>(begin: 0.98, end: 1.0).animate(
-            CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
-          ),
-          child: IndexedStack(index: widget.index, children: widget.children),
+        position: Tween<Offset>(
+          begin: beginOffset,
+          end: Offset.zero,
+        ).animate(
+            CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic)),
+        child: IndexedStack(
+          index: widget.index,
+          children: widget.children,
         ),
       ),
     );
@@ -212,12 +267,27 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
 
+  void _openChatbot() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+          ),
+          child: const ChatbotScreen(),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       extendBodyBehindAppBar: true,
       extendBody: true,
-
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(75),
         child: ClipRRect(
@@ -229,9 +299,7 @@ class _MainScreenState extends State<MainScreen> {
               bottom: PreferredSize(
                 preferredSize: const Size.fromHeight(1),
                 child: Container(
-                  color: Colors.white.withValues(alpha: 0.1),
-                  height: 1,
-                ),
+                    color: Colors.white.withValues(alpha: 0.1), height: 1),
               ),
               title: Row(
                 children: [
@@ -243,59 +311,54 @@ class _MainScreenState extends State<MainScreen> {
                 ],
               ),
               actions: [
+                // TOMBOL NOTIFIKASI
+                IconButton(
+                  tooltip: 'Notifikasi',
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) {
+                          return const NotificationScreen();
+                        },
+                      ),
+                    );
+                  },
+                  icon: const Icon(
+                    Icons.notifications_none_rounded,
+                    color: Colors.white,
+                    size: 26,
+                  ),
+                ),
+
+                // TOMBOL PROFILE USER
                 Padding(
-                  padding: const EdgeInsets.only(right: 20),
-                  child: Center(
-                    child: GestureDetector(
-                      onTap: () {
-                        // JURUS POP-UP CHATBOT BAWAH MBUTT!
-                        showModalBottomSheet(
-                          context: context,
-                          isScrollControlled:
-                              true, // Wajib true biar pop-up bisa tinggi
-                          backgroundColor: Colors
-                              .transparent, // Biar background-nya transparan & bisa melengkung
+                  padding: const EdgeInsets.only(right: 18, left: 4),
+                  child: GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
                           builder: (context) {
-                            return Padding(
-                              // Ini jurus rahasia biar pop-up naik pas keyboard HP muncul
-                              padding: EdgeInsets.only(
-                                bottom: MediaQuery.of(
-                                  context,
-                                ).viewInsets.bottom,
-                              ),
-                              child: const ChatbotScreen(),
-                            );
+                            return const UserProfileScreen();
                           },
-                        );
-                      },
-                      child: Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
+                        ),
+                      );
+                    },
+                    child: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
                           color: const Color(0xFFD4AF37),
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(
-                                0xFFD4AF37,
-                              ).withValues(alpha: 0.4),
-                              blurRadius: 5,
-                              offset: const Offset(0, 0),
-                            ),
-                          ],
+                          width: 1.5,
                         ),
-                        child: Stack(
-                          clipBehavior: Clip.none,
-                          alignment: Alignment.center,
-                          children: [
-                            const Icon(
-                              Icons.chat_bubble_outline,
-                              color: Color(0xFF0a0a0a),
-                              size: 20,
-                            ),
-                            Positioned(top: -2, right: -2, child: PingDot()),
-                          ],
-                        ),
+                      ),
+                      child: const Icon(
+                        Icons.person_outline_rounded,
+                        color: Color(0xFFD4AF37),
+                        size: 23,
                       ),
                     ),
                   ),
@@ -305,44 +368,81 @@ class _MainScreenState extends State<MainScreen> {
           ),
         ),
       ),
-
-      // PAKE INDEXEDSTACK BIAR HALAMAN DISIMPEN DI MEMORI (PINDAH TAB 0 DETIK!)
-      body: AnimatedIndexedStack(
-        index: _selectedIndex,
+      body: Stack(
         children: [
-          // INDEX 0
-          // HOME
-          HomeScreen(
-            onNavigateToGallery: () => setState(() => _selectedIndex = 1),
+          AnimatedIndexedStack(
+            index: _selectedIndex,
+            children: [
+              HomeScreen(
+                onNavigateToGallery: () => setState(() => _selectedIndex = 1),
+              ),
+              GalleryScreen(
+                  onBack: () => setState(() => _selectedIndex = 0)),
+              const RabScreen(),
+              const ProfileScreen(),
+            ],
           ),
 
-          // INDEX 1
-          // GALERI
-          GalleryScreen(onBack: () => setState(() => _selectedIndex = 0)),
-
-          // INDEX 2
-          // KALKULATOR RAB
-          const RabScreen(),
-
-          // INDEX 3
-          // PROFIL
-          const ProfileScreen(),
+          // FLOATING CHAT AI DI POJOK KANAN BAWAH
+          Positioned(
+            right: 20,
+            bottom: 95,
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: _openChatbot,
+                borderRadius: BorderRadius.circular(30),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 17,
+                    vertical: 12,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFD4AF37),
+                    borderRadius: BorderRadius.circular(30),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.55),
+                        blurRadius: 14,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.chat_bubble_outline_rounded,
+                        color: Color(0xFF0A0A0A),
+                        size: 21,
+                      ),
+                      SizedBox(width: 8),
+                      Text(
+                        'CHAT AI',
+                        style: TextStyle(
+                          color: Color(0xFF0A0A0A),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
         ],
       ),
-
       bottomNavigationBar: SafeArea(
         child: Container(
           margin: const EdgeInsets.only(left: 20, right: 20, bottom: 20),
-          height: 65, // Tinggi fix biar rapi
+          height: 65,
           decoration: BoxDecoration(
-            color: const Color(
-              0xFF0A0A0A,
-            ), // Warna solid hitam pekat, no muddy color!
+            color: const Color(0xFF0A0A0A),
             borderRadius: BorderRadius.circular(30),
             border: Border.all(
-              color: Colors.white.withValues(alpha: 0.08),
-              width: 1,
-            ),
+                color: Colors.white.withValues(alpha: 0.08), width: 1),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.8),
@@ -354,10 +454,13 @@ class _MainScreenState extends State<MainScreen> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              _buildNavItem(0, Icons.home_outlined, 'HOME'),
-              _buildNavItem(1, Icons.layers_outlined, 'GALERI'),
-              _buildNavItem(2, Icons.calculate_outlined, 'KALKULATOR'),
-              _buildNavItem(3, Icons.person_outlined, 'PROFIL'),
+              _buildNavItem(0, Icons.home_outlined, Icons.home_rounded, 'HOME'),
+              _buildNavItem(1, Icons.photo_library_outlined,
+                  Icons.photo_library_rounded, 'GALERI'),
+              _buildNavItem(2, Icons.calculate_outlined,
+                  Icons.calculate_rounded, 'KALKULATOR'),
+              _buildNavItem(
+                  3, Icons.info_outline_rounded, Icons.info_rounded, 'ABOUT'),
             ],
           ),
         ),
@@ -365,12 +468,15 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
-  Widget _buildNavItem(int index, IconData icon, String label) {
+  Widget _buildNavItem(
+      int index, IconData icon, IconData activeIcon, String label) {
     final bool isSelected = _selectedIndex == index;
 
     return GestureDetector(
       onTap: () => setState(() => _selectedIndex = index),
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeInOut,
         width: 72,
         height: 48,
         decoration: BoxDecoration(
@@ -379,12 +485,11 @@ class _MainScreenState extends State<MainScreen> {
               : Colors.transparent,
           borderRadius: BorderRadius.circular(18),
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 8),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              icon,
+              isSelected ? activeIcon : icon,
               size: 20,
               color: isSelected ? const Color(0xFFD4AF37) : Colors.white70,
             ),
@@ -393,79 +498,13 @@ class _MainScreenState extends State<MainScreen> {
               label,
               style: TextStyle(
                 color: isSelected ? const Color(0xFFD4AF37) : Colors.white54,
-                fontSize: 10,
+                fontSize: 9,
                 fontWeight: FontWeight.w700,
               ),
             ),
           ],
         ),
       ),
-    );
-  }
-}
-
-// ==========================================
-// 3. WIDGET ANIMASI PING (NOTIF)
-// ==========================================
-class PingDot extends StatefulWidget {
-  const PingDot({super.key});
-
-  @override
-  State<PingDot> createState() => _PingDotState();
-}
-
-class _PingDotState extends State<PingDot> with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 1),
-    )..repeat();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) {
-        return Stack(
-          alignment: Alignment.center,
-          children: [
-            Opacity(
-              opacity: 1.0 - _controller.value,
-              child: Transform.scale(
-                scale: 1.0 + (_controller.value * 1.5),
-                child: Container(
-                  width: 12,
-                  height: 12,
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ),
-            Container(
-              width: 12,
-              height: 12,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: const Color(0xFF0a0a0a),
-                border: Border.all(color: Colors.white, width: 2),
-              ),
-            ),
-          ],
-        );
-      },
     );
   }
 }

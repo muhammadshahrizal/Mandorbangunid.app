@@ -28,12 +28,11 @@ class _RabScreenState extends State<RabScreen> {
   String _kualitasBangunan = 'Standar';
   String _lokasiKota = 'Jabodetabek';
   int _jumlahLantai = 1;
-
   double? _totalEstimasi;
   String? _estimasiWaktu;
   bool _isLoading = false;
 
-  // Harga dasar per m²
+  // Harga dasar per m2
   final Map<String, double> _hargaPerM2 = {
     'Ekonomis': 3000000,
     'Standar': 4000000,
@@ -54,14 +53,12 @@ class _RabScreenState extends State<RabScreen> {
   // ============================================================
   Future<void> _hitungRab() async {
     final String luasText = _luasController.text.trim();
-
     if (luasText.isEmpty) {
       _showSnackBar('Masukkan luas bangunan terlebih dahulu.', isError: true);
       return;
     }
 
     final double? luas = double.tryParse(luasText.replaceAll(',', '.'));
-
     if (luas == null || luas <= 0) {
       _showSnackBar('Luas bangunan tidak valid.', isError: true);
       return;
@@ -73,7 +70,6 @@ class _RabScreenState extends State<RabScreen> {
     }
 
     FocusScope.of(context).unfocus();
-
     setState(() {
       _isLoading = true;
       _totalEstimasi = null;
@@ -87,7 +83,7 @@ class _RabScreenState extends State<RabScreen> {
     double hargaDasar = _hargaPerM2[_kualitasBangunan]!;
     double multiplierLantai = _jumlahLantai == 2 ? 1.15 : 1.0;
     double multiplierKota = _multiplierLokasi[_lokasiKota]!;
-    
+
     double hargaFinalPerMeter = hargaDasar * multiplierLantai * multiplierKota;
 
     String hitungWaktu;
@@ -130,11 +126,11 @@ class _RabScreenState extends State<RabScreen> {
   // ============================================================
   String _getSpesifikasiTeks() {
     if (_kualitasBangunan == 'Ekonomis') {
-      return "• Lantai: Keramik 40x40 cm\n• Dinding: Batako / Bata Ringan Standard\n• Atap: Rangka Kayu + Genteng Tanah Liat\n• Cat: Catylac / Setara\n• Plafon: Gypsum Rangka Hollow";
+      return "  Lantai: Keramik 40x40 cm\n  Dinding: Batako / Bata Ringan Standard\n  Atap: Rangka Kayu + Genteng Tanah Liat\n  Cat: Catylac / Setara\n  Plafon: Gypsum Rangka Hollow";
     } else if (_kualitasBangunan == 'Premium') {
-      return "• Lantai: Granit Tile 80x80 cm / Marmer\n• Dinding: Bata Merah (Double Wall)\n• Atap: Baja Ringan + Genteng Keramik Kanmuri\n• Cat: Jotun / Dulux Premium\n• Lainnya: Smart Home Ready, Sanitasi Toto Premium";
+      return "  Lantai: Granit Tile 80x80 cm / Marmer\n  Dinding: Bata Merah (Double Wall)\n  Atap: Baja Ringan + Genteng Keramik Kanmuri\n  Cat: Jotun / Dulux Premium\n  Lainnya: Smart Home Ready, Sanitasi Toto Premium";
     } else {
-      return "• Lantai: Granit 60x60 cm\n• Dinding: Bata Merah / Hebel\n• Atap: Baja Ringan + Genteng Beton\n• Cat: Dulux / Mowilex\n• Sanitasi: Toto Standard / American Standard";
+      return "  Lantai: Granit 60x60 cm\n  Dinding: Bata Merah / Hebel\n  Atap: Baja Ringan + Genteng Beton\n  Cat: Dulux / Mowilex\n  Sanitasi: Toto Standard / American Standard";
     }
   }
 
@@ -147,19 +143,16 @@ class _RabScreenState extends State<RabScreen> {
       return;
     }
 
-    final String noWA = '628152318805'; 
-    final String pesan = '''
-Halo MandorBangun, saya ingin konsultasi mengenai proyek saya:
+    final String noWA = '628152318805';
+    final String pesan = '''Halo MandorBangun, saya ingin konsultasi mengenai proyek saya:
 *Lokasi:* $_lokasiKota
 *Jenis:* $_jenisBangunan ($_jumlahLantai Lantai)
 *Kualitas:* $_kualitasBangunan
 *Luas:* ${_luas.toStringAsFixed(0)} m²
-
 *Estimasi RAB:* Rp ${_formatRupiah(_totalEstimasi!)}
 *Estimasi Waktu:* $_estimasiWaktu
 
-Mohon info lebih lanjut untuk penawaran resminya. Terima kasih!
-''';
+Mohon info lebih lanjut untuk penawaran resminya. Terima kasih!''';
 
     final String url = 'https://wa.me/$noWA?text=${Uri.encodeComponent(pesan)}';
     final Uri uri = Uri.parse(url);
@@ -216,10 +209,9 @@ Mohon info lebih lanjut untuk penawaran resminya. Terima kasih!
   // ============================================================
   void _copyResult() {
     if (_totalEstimasi == null) return;
-
     final double total = _totalEstimasi!;
-    final String result = '''
-ESTIMASI RAB MANDORBANGUN.ID
+
+    final String result = '''ESTIMASI RAB MANDORBANGUN.ID
 ----------------------------
 Lokasi: $_lokasiKota
 Jenis Bangunan: $_jenisBangunan ($_jumlahLantai Lantai)
@@ -243,9 +235,7 @@ ${_getSpesifikasiTeks()}
 - Pengecatan (5%): Rp ${_formatRupiah(total * 0.05)}
 - Elektrikal & Plumbing (10%): Rp ${_formatRupiah(total * 0.10)}
 
-Catatan: Estimasi ini merupakan perkiraan awal.
-MandorBangun.id
-''';
+Catatan: Estimasi ini merupakan perkiraan awal. MandorBangun.id''';
 
     Clipboard.setData(ClipboardData(text: result));
     _showSnackBar('Rincian lengkap RAB berhasil disalin.');
@@ -258,48 +248,50 @@ MandorBangun.id
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _bgColor,
-      body: SafeArea(
-        child: CustomScrollView(
-          physics: const BouncingScrollPhysics(),
-          slivers: [
-            SliverToBoxAdapter(child: _buildHeader()),
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(20, 10, 20, 120),
-              sliver: SliverList(
-                delegate: SliverChildListDelegate(
-                  [
-                    _buildInfoCard(),
-                    const SizedBox(height: 24),
-                    _buildInputSection(),
-                    const SizedBox(height: 20),
-                    _buildCalculateButton(),
-                    const SizedBox(height: 20),
-                    AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 400),
-                      transitionBuilder: (Widget child, Animation<double> animation) {
-                        return SizeTransition(sizeFactor: animation, child: FadeTransition(opacity: animation, child: child));
-                      },
-                      child: _isLoading 
-                          ? const Center(key: ValueKey('loading'), child: CircularProgressIndicator(color: _accentColor))
-                          : _totalEstimasi != null
-                              ? Container(key: const ValueKey('result'), child: _buildResultCard())
-                              : const SizedBox.shrink(key: ValueKey('empty')),
-                    ),
-                    const SizedBox(height: 20),
-                    if (_totalEstimasi != null) _buildDisclaimer(),
-                  ],
-                ),
+      body: CustomScrollView(
+        physics: const BouncingScrollPhysics(),
+        slivers: [
+          // SPASI ATAS SUPAYA GA NABAARRAK APP BAR GLOBAL MAIN SCREEN
+          const SliverToBoxAdapter(
+            child: SizedBox(height: 110),
+          ),
+          SliverToBoxAdapter(child: _buildHeader()),
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(20, 10, 20, 120),
+            sliver: SliverList(
+              delegate: SliverChildListDelegate(
+                [
+                  _buildInfoCard(),
+                  const SizedBox(height: 24),
+                  _buildInputSection(),
+                  const SizedBox(height: 20),
+                  _buildCalculateButton(),
+                  const SizedBox(height: 20),
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 400),
+                    transitionBuilder: (Widget child, Animation<double> animation) {
+                      return SizeTransition(sizeFactor: animation, child: FadeTransition(opacity: animation, child: child));
+                    },
+                    child: _isLoading 
+                        ? const Center(key: ValueKey('loading'), child: CircularProgressIndicator(color: _accentColor))
+                        : _totalEstimasi != null 
+                            ? Container(key: const ValueKey('result'), child: _buildResultCard()) 
+                            : const SizedBox.shrink(key: ValueKey('empty')),
+                  ),
+                  const SizedBox(height: 20),
+                  if (_totalEstimasi != null) _buildDisclaimer(),
+                ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildHeader() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+      padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
       child: Row(
         children: [
           Container(
@@ -536,7 +528,7 @@ MandorBangun.id
             },
           ),
           const SizedBox(height: 16),
-
+          
           // WIDGET ESTIMASI WAKTU
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -555,8 +547,8 @@ MandorBangun.id
             ),
           ),
           const SizedBox(height: 24),
-
-          // FITUR BARU: SPESIFIKASI MATERIAL
+          
+          // SPESIFIKASI MATERIAL
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(16),
@@ -581,8 +573,8 @@ MandorBangun.id
             ),
           ),
           const SizedBox(height: 16),
-
-          // FITUR BARU: RINCIAN PEKERJAAN DETAIL (ACCORDION)
+          
+          // RINCIAN PEKERJAAN DETAIL (ACCORDION)
           Theme(
             data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
             child: ExpansionTile(
@@ -611,7 +603,6 @@ MandorBangun.id
               ],
             ),
           ),
-
           const SizedBox(height: 10),
           const Divider(color: Colors.white24, height: 1),
           const SizedBox(height: 16),
